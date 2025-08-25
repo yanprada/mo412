@@ -24,8 +24,9 @@ project-root/
 │
 ├── src/
 │   ├── utils/
-        ├── data_source.py      # DataSource class
-        └── segment_merger.py   # SegmentMerger class
+│   │    ├── data_source.py      # DataSource class
+│   │    └── segment_merger.py   # SegmentMerger class
+│   │
 │   └── a_build_network.py   # Merges/derives segments, builds graphs, saves to
 │                             # data/shared/ and data/vizualization/
 │
