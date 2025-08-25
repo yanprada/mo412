@@ -23,8 +23,9 @@ project-root/
 │   └── vizualization/    # Plots, network images, dashboard-ready assets
 │
 ├── src/
-│   ├── a_data_source.py      # Processes data from data/raw/ -> data/processed/
-│   └── b_segment_merger.py   # Merges/derives segments, builds graphs, saves to
+│   ├── utils/
+        └── data_source/      # Has the DataSource class
+│   └── a_segment_merger.py   # Merges/derives segments, builds graphs, saves to
 │                             # data/shared/ and data/vizualization/
 │
 ├── requirements.txt      # Python dependencies (see section below)
@@ -51,8 +52,8 @@ See full list in [requirements.txt](./requirements.txt).
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
+git clone git@github.com:yanprada/mo412.git
+cd mo412
 ```
 
 ### 2. Create a virtual environment
@@ -74,7 +75,13 @@ pip install -r requirements.txt
 
 ## ▶️ Usage
 
-### Step 1: Build and analyze the network
+### Step 1: Download the raw data
+
+- Download the raw data from https://dadosabertos-aneel.opendata.arcgis.com/datasets/79071ab68be94f6f91b5c2eead4e2384/about
+
+- Save it in `data/raw` folder.
+
+### Step 2: Build and analyze the network
 
 Run the second script to:
 
@@ -82,19 +89,19 @@ Run the second script to:
 
 - Create network graphs
 
-- Save outputs in shared/ and visualization/
+- Save outputs in `data/processed/`, `data/shared/` and `data/visualization/` folders
 
 ```bash
-python src/b_segment_merger.py
+python src/a_segment_merger.py
 ```
 ---
 
 ## 📊 Outputs
-- Processed datasets: data/processed/
+- Processed datasets: `data/processed/`
 
-- Network data & reports: data/shared/
+- Network data & reports: `data/shared/`
 
-- Graph visualizations: data/visualization/
+- Graph visualizations: `data/visualization/`
 
 ---
 
