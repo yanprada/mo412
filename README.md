@@ -24,7 +24,7 @@ project-root/
 │
 ├── src/
 │   ├── utils/
-        └── data_source/      # Has the DataSource class
+        └── data_source.py      # Has the DataSource class
 │   └── a_segment_merger.py   # Merges/derives segments, builds graphs, saves to
 │                             # data/shared/ and data/vizualization/
 │
@@ -70,7 +70,10 @@ source network-cpfl/bin/activate
 ```bash
 pip install -r requirements.txt
 ```
-
+### 4. Install setup
+```bash
+python setup.py install
+```
 ---
 
 ## ▶️ Usage
@@ -92,7 +95,7 @@ Run the second script to:
 - Save outputs in `data/processed/`, `data/shared/` and `data/visualization/` folders
 
 ```bash
-python src/a_segment_merger.py
+python src/a_build_network.py
 ```
 ---
 
