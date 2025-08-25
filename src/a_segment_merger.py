@@ -10,7 +10,7 @@ import numpy as np
 
 from shapely.ops import linemerge, unary_union
 
-from src.a_data_source import DataSource
+from utils.data_source import DataSource
 
 # ---------------------------------------------------------------------------
 # Graph / Segment Merging
