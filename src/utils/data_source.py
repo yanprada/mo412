@@ -3,10 +3,17 @@
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Union
+import logging
 import pandas as pd
 import shapely
 import geopandas as gpd
 import pyogrio
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -44,7 +51,8 @@ class DataSource:
     def _read_materialized(path: Path) -> Optional[pd.DataFrame]:
         return pd.read_parquet(path) if path.exists() else None
 
-    def _read_from_raw(self) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+    def read_from_raw(self) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+        """Read the dataset from the raw data source."""
         raw = self.get("raw_data")
         sql = self._build_sql(self.layer, self.query)
         df = pyogrio.read_dataframe(f"zip://{raw.path}", sql=sql)
@@ -72,16 +80,17 @@ class DataSource:
         return df
 
     @classmethod
-    def read(self, name: str) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
+    def read(cls, name: str) -> Union[pd.DataFrame, gpd.GeoDataFrame]:
         """Read a dataset by name, using cached version if available or creating it from raw data."""
-        src = self.get(name)
+        logger.info("Reading dataset '%s'", name)
+        src = cls.get(name)
         path = src.materialized_path()
-        if (df := self._read_materialized(path)) is not None:
-            return self._check_geometry(df)
+        if (df := cls._read_materialized(path)) is not None:
+            return cls._check_geometry(df)
         path.parent.mkdir(parents=True, exist_ok=True)
-        df = src._read_from_raw()
+        df = src.read_from_raw()
         df.to_parquet(path)
-        return self._check_geometry(df)
+        return cls._check_geometry(df)
 
 
 DATABASES: dict[str, DataSource] = {
