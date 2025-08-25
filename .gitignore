@@ -1,0 +1,6 @@
+.venv_mo412/
+__pycache__/
+*.parquet
+*.csv
+*.zip
+*.qgz
