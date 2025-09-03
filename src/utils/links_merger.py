@@ -1,5 +1,5 @@
 """
-Segment merging utility for electrical network segments.
+links merging utility for electrical network links.
 """
 
 from __future__ import annotations
@@ -18,10 +18,10 @@ from utils.data_source import DataSource
 
 
 # ---------------------------------------------------------------------------
-# Graph / Segment Merging
+# Graph / links Merging
 # ---------------------------------------------------------------------------
-class SegmentMerger:
-    """Merge line segments based on connectivity and points of interest."""
+class LinksMerger:
+    """Merge line links based on connectivity and points of interest."""
 
     def __init__(self, poi_ids: set, pk: str):
         self.poi_ids = frozenset(poi_ids)
@@ -121,61 +121,63 @@ class SegmentMerger:
             merged = linemerge(unary_union(flat))
         return merged
 
-    def merge(self, df_segments: pd.DataFrame) -> gpd.GeoDataFrame:
+    def merge(self, df_links: pd.DataFrame) -> gpd.GeoDataFrame:
         """
-        Merge line segments based on connectivity and points of interest.
+        Merge line links based on connectivity and points of interest.
         """
-        cand = df_segments.copy()
+        cand = df_links.copy()
         if cand.empty:
             return cand
 
         adj, endpoints = self._graph(cand)
         start_nodes = self._remove_irrelevant_nodes(adj)
-        seen = set()
-        records = []
 
         n_edges = len(cand)
         edge_indices = np.arange(n_edges)
 
+        geoms = cand["geometry"].to_numpy()
+        comps = cand["COMP"].to_numpy()
+
+        seen = set()
+
+        starts, ends, n_edges_list, lengths, geoms_out = [], [], [], [], []
+
         for edge_idx in tqdm(
-            edge_indices, desc="Merging segments", disable=n_edges < 1000
+            edge_indices, desc="Merging links", disable=n_edges < 1000
         ):
             if edge_idx in seen:
                 continue
+
             a, b = endpoints[edge_idx]
             if a not in start_nodes and b not in start_nodes:
                 continue
+
             walked = self._walk(edge_idx, start_nodes, adj, endpoints)
             if not walked:
                 continue
 
             seen.update(walked["edges"])
+            edges = walked["edges"]
 
-            geom_series = cand.iloc[walked["edges"]]["geometry"]
-            geom = self._merge_geometry(geom_series.tolist())
-
+            geom = self._merge_geometry(geoms[edges])
             if geom is None or geom.is_empty:
                 continue
-            records.append(
-                {
-                    "start_id": walked["start"],
-                    "end_id": walked["end"],
-                    "n_edges": len(walked["edges"]),
-                    "geometry": geom,
-                }
-            )
 
-        if not records:
-            return gpd.GeoDataFrame(
-                columns=["start_id", "end_id", "n_edges", "geometry"],
-                geometry="geometry",
-                crs=getattr(cand, "crs", None),
-            )
+            starts.append(walked["start"])
+            ends.append(walked["end"])
+            n_edges_list.append(len(edges))
+            lengths.append(comps[edges].sum())
+            geoms_out.append(geom)
 
         result_df = gpd.GeoDataFrame(
-            records,
+            {
+                "start_id": starts,
+                "end_id": ends,
+                "n_edges": n_edges_list,
+                "lenth_meters": lengths,
+                "geometry": geoms_out,
+            },
             geometry="geometry",
-            crs=DataSource.get("segments_medium_tension").crs,
+            crs=DataSource.get("links_medium_tension").crs,
         )
-
         return result_df
