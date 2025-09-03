@@ -94,21 +94,21 @@ class DataSource:
 
 
 DATABASES: dict[str, DataSource] = {
-    "segments_high_tension": DataSource(
-        name="segments_high_tension",
-        path="data/processed/segments_high_tension.parquet",
+    "links_high_tension": DataSource(
+        name="links_high_tension",
+        path="data/processed/links_high_tension.parquet",
         layer="SSDAT",
         crs="EPSG:4326",
     ),
-    "segments_medium_tension": DataSource(
-        name="segments_medium_tension",
-        path="data/processed/segments_medium_tension.parquet",
+    "links_medium_tension": DataSource(
+        name="links_medium_tension",
+        path="data/processed/links_medium_tension.parquet",
         layer="SSDMT",
         crs="EPSG:4326",
     ),
-    "segments_low_tension": DataSource(
-        name="segments_low_tension",
-        path="data/processed/segments_low_tension.parquet",
+    "links_low_tension": DataSource(
+        name="links_low_tension",
+        path="data/processed/links_low_tension.parquet",
         layer="SSDBT",
         crs="EPSG:4326",
     ),
@@ -118,10 +118,28 @@ DATABASES: dict[str, DataSource] = {
         layer="PONNOT",
         crs="EPSG:4326",
     ),
+    "consumers_high_tension": DataSource(
+        name="consumers_high_tension",
+        path="data/processed/consumers_high_tension.parquet",
+        layer="UCAT_tab",
+        crs="EPSG:4326",
+    ),
     "consumers_medium_tension": DataSource(
         name="consumers_medium_tension",
         path="data/processed/consumers_medium_tension.parquet",
         layer="UCMT_tab",
+        crs="EPSG:4326",
+    ),
+    "consumers_low_tension": DataSource(
+        name="consumers_low_tension",
+        path="data/processed/consumers_low_tension.parquet",
+        layer="UCBT_tab",
+        crs="EPSG:4326",
+    ),
+    "suppliers_high_tension": DataSource(
+        name="suppliers_high_tension",
+        path="data/processed/suppliers_high_tension.parquet",
+        layer="UGAT_tab",
         crs="EPSG:4326",
     ),
     "suppliers_medium_tension": DataSource(
@@ -130,16 +148,10 @@ DATABASES: dict[str, DataSource] = {
         layer="UGMT_tab",
         crs="EPSG:4326",
     ),
-    "consumers_high_tension": DataSource(
-        name="consumers_high_tension",
-        path="data/processed/consumers_high_tension.parquet",
-        layer="UCAT_tab",
-        crs="EPSG:4326",
-    ),
-    "suppliers_high_tension": DataSource(
-        name="suppliers_high_tension",
-        path="data/processed/suppliers_high_tension.parquet",
-        layer="UGAT_tab",
+    "suppliers_low_tension": DataSource(
+        name="suppliers_low_tension",
+        path="data/processed/suppliers_low_tension.parquet",
+        layer="UGBT_tab",
         crs="EPSG:4326",
     ),
     "substations": DataSource(
