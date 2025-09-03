@@ -23,16 +23,16 @@ logger = logging.getLogger(__name__)
 
 PATHS = {
     "low_tension": {
-        "nodes": "data/vizualization/nodes_low_tension",
-        "links": "data/vizualization/links_low_tension",
+        "nodes": "data/gold/nodes_low_tension",
+        "links": "data/gold/links_low_tension",
     },
     "medium_tension": {
-        "nodes": "data/vizualization/nodes_medium_tension",
-        "links": "data/vizualization/links_medium_tension",
+        "nodes": "data/gold/nodes_medium_tension",
+        "links": "data/gold/links_medium_tension",
     },
     "high_tension": {
-        "nodes": "data/vizualization/nodes_high_tension",
-        "links": "data/vizualization/links_high_tension",
+        "nodes": "data/gold/nodes_high_tension",
+        "links": "data/gold/links_high_tension",
     },
 }
 
@@ -158,7 +158,7 @@ def merge_links(data: dict, ids: dict, pk: str, tension_level: str) -> tuple:
     path_nodes = ".".join([PATHS[tension_level]["nodes"], "parquet"])
     links_merger = LinksMerger(nodes_ids, pk)
     if not os.path.exists(path_links) or not os.path.exists(path_nodes):
-        return links_merger.merge(data[f"links_{tension_level}"])
+        return links_merger.merge(data[f"links_{tension_level}"], tension_level)
     df = pd.read_parquet(path_links)
     return check_geometry(df)
 
