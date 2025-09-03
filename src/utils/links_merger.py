@@ -11,6 +11,7 @@ import pandas as pd
 from tqdm import tqdm
 import geopandas as gpd
 import numpy as np
+import matplotlib.pyplot as plt
 
 from shapely.ops import linemerge, unary_union
 
@@ -121,7 +122,33 @@ class LinksMerger:
             merged = linemerge(unary_union(flat))
         return merged
 
-    def merge(self, df_links: pd.DataFrame) -> gpd.GeoDataFrame:
+    def plot_hist(
+        self,
+        adj,
+        tension_level: str,
+        remove_nodes: bool = False,
+        remove_outliers: bool = False,
+    ):
+        degrees = [len(edges) for edges in adj.values()]
+        fstr = ""
+        if remove_nodes:
+            degrees = [d for d in degrees if d != 2]
+            fstr = "_without_2"
+        if remove_outliers:
+            q1 = np.percentile(degrees, 2)
+            q3 = np.percentile(degrees, 98)
+            iqr = q3 - q1
+            upper_bound = q3 + 1.5 * iqr
+            degrees = [d for d in degrees if d < upper_bound]
+            fstr += "_without_outliers"
+        plt.hist(degrees, bins=range(1, max(degrees) + 1))
+        plt.xlabel("Degree")
+        plt.ylabel("Frequency")
+        plt.title(f"Degree Distribution of Graph - {tension_level}{fstr}")
+        plt.savefig(f"vizualization/degree_distribution_{tension_level}{fstr}.png")
+        plt.close()
+
+    def merge(self, df_links: pd.DataFrame, tension_level: str) -> gpd.GeoDataFrame:
         """
         Merge line links based on connectivity and points of interest.
         """
@@ -130,6 +157,10 @@ class LinksMerger:
             return cand
 
         adj, endpoints = self._graph(cand)
+        self.plot_hist(adj, tension_level)
+        self.plot_hist(adj, tension_level, remove_nodes=True)
+        self.plot_hist(adj, tension_level, remove_outliers=True)
+        self.plot_hist(adj, tension_level, remove_nodes=True, remove_outliers=True)
         start_nodes = self._remove_irrelevant_nodes(adj)
 
         n_edges = len(cand)
