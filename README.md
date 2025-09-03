@@ -17,19 +17,19 @@ The analysis is inspired by concepts from **Albert-László Barabási's book _Ne
 project-root/
 │
 ├── data/
-│   ├── raw/              # Original datasets (read-only; not tracked if large/sensitive)
-│   ├── processed/        # Cleaned/normalized intermediate datasets
-│   ├── shared/           # Aggregates, network metrics, exports for reports
-│   └── vizualization/    # Plots, network images, dashboard-ready assets
-│
+│   ├── bronze/              # Original datasets (read-only; not tracked if large/sensitive)
+│   ├── silver/              # Cleaned/normalized intermediate datasets
+│   └── gold/                 # Aggregates, network metrics, exports for reports
+│    
 ├── src/
 │   ├── utils/
 │   │    ├── data_source.py      # DataSource class
 │   │    └── segment_merger.py   # SegmentMerger class
 │   │
 │   └── a_build_network.py   # Merges/derives segments, builds graphs, saves to
-│                             # data/shared/ and data/vizualization/
-│
+│                             # data/gold/
+├── vizualization/       # Plots, network images, dashboard-ready assets
+
 ├── requirements.txt      # Python dependencies (see section below)
 └── README.md             # This file
 ```
@@ -84,7 +84,7 @@ python setup.py install
 
 - Download the raw data from https://dadosabertos-aneel.opendata.arcgis.com/datasets/79071ab68be94f6f91b5c2eead4e2384/about
 
-- Save it in `data/raw` folder.
+- Save it in `data/bronze` folder.
 
 ### Step 2: Build and analyze the network
 
@@ -94,7 +94,7 @@ Run the second script to:
 
 - Create network graphs
 
-- Save outputs in `data/processed/`, `data/shared/` and `data/visualization/` folders
+- Save outputs in `data/silver/`, `data/gold/` and `vizualization/` folders
 
 ```bash
 python src/a_build_network.py
@@ -102,11 +102,11 @@ python src/a_build_network.py
 ---
 
 ## 📊 Outputs
-- Processed datasets: `data/processed/`
+- Intermediate Processed datasets: `data/silver/`
 
-- Network data & reports: `data/shared/`
+- Network data: `data/gold/`
 
-- Graph visualizations: `data/visualization/`
+- Graph visualizations: `vizualization/`
 
 ---
 
