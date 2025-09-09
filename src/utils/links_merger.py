@@ -16,6 +16,7 @@ import matplotlib.pyplot as plt
 from shapely.ops import linemerge, unary_union
 
 from utils.data_source import DataSource
+import os
 
 
 # ---------------------------------------------------------------------------
@@ -122,30 +123,43 @@ class LinksMerger:
             merged = linemerge(unary_union(flat))
         return merged
 
-    def plot_hist(
+    def plot_histograms(
         self,
         adj,
         tension_level: str,
         remove_nodes: bool = False,
-        remove_outliers: bool = False,
     ):
-        degrees = [len(edges) for edges in adj.values()]
+        """Plot degree distribution and log-log degree distribution of the graph."""
+        degrees = np.fromiter((len(edges) for edges in adj.values()), dtype=int)
         fstr = ""
         if remove_nodes:
-            degrees = [d for d in degrees if d != 2]
-            fstr = "_without_2"
-        if remove_outliers:
-            q1 = np.percentile(degrees, 2)
-            q3 = np.percentile(degrees, 98)
-            iqr = q3 - q1
-            upper_bound = q3 + 1.5 * iqr
-            degrees = [d for d in degrees if d < upper_bound]
-            fstr += "_without_outliers"
-        plt.hist(degrees, bins=range(1, max(degrees) + 1))
+            degrees = degrees[degrees != 2]
+            fstr = "_without_degree_2"
+
+        degree_counts = np.bincount(degrees)
+        degree_range = np.arange(len(degree_counts))
+        percentages = degree_counts / degree_counts.sum() * 100
+
+        # Plot degree distribution
+        plt.scatter(degree_range, percentages, color="blue")
         plt.xlabel("Degree")
-        plt.ylabel("Frequency")
+        plt.ylabel("Percentage (%)")
         plt.title(f"Degree Distribution of Graph - {tension_level}{fstr}")
-        plt.savefig(f"vizualization/degree_distribution_{tension_level}{fstr}.png")
+        plt.grid(True)
+        # Ensure the directory exists
+        os.makedirs(f"visualization/{tension_level}/", exist_ok=True)
+        plt.savefig(f"visualization/{tension_level}/degree_distribution{fstr}.png")
+        plt.close()
+
+        # Plot log-log degree distribution
+        plt.scatter(degree_range, percentages, color="blue")
+        plt.xscale("log")
+        plt.yscale("log")
+        plt.xlabel("Degree (log scale)")
+        plt.ylabel("Percentage (%) (log scale)")
+        plt.title(f"Log-Log Degree Distribution of Graph - {tension_level}{fstr}")
+        plt.grid(True, which="both", linestyle="--", linewidth=0.5)
+        plt.savefig(f"visualization/{tension_level}/log_degree_distribution_{fstr}.png")
         plt.close()
 
     def merge(self, df_links: pd.DataFrame, tension_level: str) -> gpd.GeoDataFrame:
@@ -157,10 +171,9 @@ class LinksMerger:
             return cand
 
         adj, endpoints = self._graph(cand)
-        self.plot_hist(adj, tension_level)
-        self.plot_hist(adj, tension_level, remove_nodes=True)
-        self.plot_hist(adj, tension_level, remove_outliers=True)
-        self.plot_hist(adj, tension_level, remove_nodes=True, remove_outliers=True)
+        self.plot_histograms(adj, tension_level)
+        self.plot_histograms(adj, tension_level, remove_nodes=True)
+
         start_nodes = self._remove_irrelevant_nodes(adj)
 
         n_edges = len(cand)
