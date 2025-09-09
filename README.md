@@ -28,7 +28,7 @@ project-root/
 │   │
 │   └── a_build_network.py   # Merges/derives segments, builds graphs, saves to
 │                             # data/gold/
-├── vizualization/       # Plots, network images, dashboard-ready assets
+├── visualization/       # Plots, network images, dashboard-ready assets
 
 ├── requirements.txt      # Python dependencies (see section below)
 └── README.md             # This file
@@ -94,7 +94,7 @@ Run the second script to:
 
 - Create network graphs
 
-- Save outputs in `data/silver/`, `data/gold/` and `vizualization/` folders
+- Save outputs in `data/silver/`, `data/gold/` and `visualization/` folders
 
 ```bash
 python src/a_build_network.py
@@ -106,7 +106,7 @@ python src/a_build_network.py
 
 - Network data: `data/gold/`
 
-- Graph visualizations: `vizualization/`
+- Graph visualizations: `visualization/`
 
 ---
 
