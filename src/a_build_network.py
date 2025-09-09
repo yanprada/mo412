@@ -144,9 +144,9 @@ def check_geometry(df: Union[pd.DataFrame, gpd.GeoDataFrame]) -> pd.DataFrame:
         return df
 
     df = df.copy()  # Avoid modifying original
-    try:
+    if isinstance(df["geometry"].iloc[0], bytes):
         df["geometry"] = shapely.from_wkb(df["geometry"].values)
-    except:
+    else:
         df["geometry"] = shapely.from_wkt(df["geometry"].values)
     return df
 
@@ -163,10 +163,11 @@ def merge_links(data: dict, ids: dict, pk: str, tension_level: str) -> tuple:
     return check_geometry(df)
 
 
-def concat_data(data, pk, type, tensions):
+def concat_data(data, pk, type_df, tensions):
+    """Concatenate data from different tension levels."""
     df = pd.DataFrame()
     for tension_level in tensions:
-        df_temp = data[f"{type}_{tension_level}"]
+        df_temp = data[f"{type_df}_{tension_level}"]
         df_temp["DIC"] = df_temp.filter(like="DIC_").sum(axis=1)
         df_temp = df_temp[["DIC", "SUB", pk]]
         df = pd.concat([df, df_temp], ignore_index=True)
@@ -174,6 +175,7 @@ def concat_data(data, pk, type, tensions):
 
 
 def get_endpoints(geom):
+    """Get the start and end points of a geometry."""
     if geom.is_empty:
         return None, None
 
@@ -209,7 +211,7 @@ def save_data(data: dict, pk: str, tensions: str) -> None:
         map_1 = dict(zip(df_links.start_id, df_links.start_point))
         map_2 = dict(zip(df_links.end_id, df_links.end_point))
         map_points = {**map_1, **map_2}
-        df_nodes = data[f"nodes"]
+        df_nodes = data["nodes"]
 
         nodes_links_clean = set(
             np.concatenate([df_links["start_id"].values, df_links["end_id"].values])
@@ -247,7 +249,7 @@ def save_data(data: dict, pk: str, tensions: str) -> None:
 
 def main():
     """Main function to execute the merging process."""
-    tensions = ["high_tension", "medium_tension", "low_tension"]
+    tensions = ["low_tension"]
     pk = "PN_CON"
     data = load_nodes(pk)
     for tension_level in tensions:
