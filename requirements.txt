@@ -9,3 +9,5 @@ scikit-learn==1.7.1
 pyarrow==21.0.0
 ipdb==0.13.13
 tqdm==4.67.1
+networkx==3.4.2
+powerlaw==1.5.0
