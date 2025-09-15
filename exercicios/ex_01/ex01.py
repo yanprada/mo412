@@ -4,12 +4,14 @@ Exercício 1 - Algoritmos em Grafos (MO412)
 Disciplina: Redes Complexas
 Professor: João Meidanis
 Aluno: Yan Prada Moro
+RA: 118982
 Data: 15/09/2025
 """
 
 from pathlib import Path
 import networkx as nx
 import matplotlib.pyplot as plt
+
 
 def generate_network(N: int, k_medio: float) -> nx.Graph:
     """Gera uma rede aleatória de Erdős-Rényi."""
