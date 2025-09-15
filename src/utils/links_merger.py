@@ -7,6 +7,7 @@ from __future__ import annotations
 from typing import Iterable, Optional
 
 from collections import defaultdict
+import ipdb
 import pandas as pd
 from tqdm import tqdm
 import geopandas as gpd
@@ -46,12 +47,14 @@ class LinksMerger:
 
         return adj, endpoints
 
-    def _remove_irrelevant_nodes(self, adj) -> frozenset:
-        return frozenset(
-            node
-            for node, edges in adj.items()
-            if node in self.poi_ids and len(edges) != 2
-        )
+    def _remove_irrelevant_nodes(self, adj, remove_nodes: bool) -> frozenset:
+        if remove_nodes:
+            return frozenset(
+                node
+                for node, edges in adj.items()
+                if node in self.poi_ids and len(edges) != 2
+            )
+        return frozenset(node for node, edges in adj.items())
 
     @staticmethod
     def _flatten(geoms: Iterable) -> list:
@@ -123,46 +126,9 @@ class LinksMerger:
             merged = linemerge(unary_union(flat))
         return merged
 
-    def plot_histograms(
-        self,
-        adj,
-        tension_level: str,
-        remove_nodes: bool = False,
-    ):
-        """Plot degree distribution and log-log degree distribution of the graph."""
-        degrees = np.fromiter((len(edges) for edges in adj.values()), dtype=int)
-        fstr = ""
-        if remove_nodes:
-            degrees = degrees[degrees != 2]
-            fstr = "_without_degree_2"
-
-        degree_counts = np.bincount(degrees)
-        degree_range = np.arange(len(degree_counts))
-        percentages = degree_counts / degree_counts.sum() * 100
-
-        # Plot degree distribution
-        plt.scatter(degree_range, percentages, color="blue")
-        plt.xlabel("Degree")
-        plt.ylabel("Percentage (%)")
-        plt.title(f"Degree Distribution of Graph - {tension_level}{fstr}")
-        plt.grid(True)
-        # Ensure the directory exists
-        os.makedirs(f"visualization/{tension_level}/", exist_ok=True)
-        plt.savefig(f"visualization/{tension_level}/degree_distribution{fstr}.png")
-        plt.close()
-
-        # Plot log-log degree distribution
-        plt.scatter(degree_range, percentages, color="blue")
-        plt.xscale("log")
-        plt.yscale("log")
-        plt.xlabel("Degree (log scale)")
-        plt.ylabel("Percentage (%) (log scale)")
-        plt.title(f"Log-Log Degree Distribution of Graph - {tension_level}{fstr}")
-        plt.grid(True, which="both", linestyle="--", linewidth=0.5)
-        plt.savefig(f"visualization/{tension_level}/log_degree_distribution_{fstr}.png")
-        plt.close()
-
-    def merge(self, df_links: pd.DataFrame, tension_level: str) -> gpd.GeoDataFrame:
+    def merge(
+        self, df_links: pd.DataFrame, remove_nodes: bool = False
+    ) -> gpd.GeoDataFrame:
         """
         Merge line links based on connectivity and points of interest.
         """
@@ -171,10 +137,8 @@ class LinksMerger:
             return cand
 
         adj, endpoints = self._graph(cand)
-        self.plot_histograms(adj, tension_level)
-        self.plot_histograms(adj, tension_level, remove_nodes=True)
 
-        start_nodes = self._remove_irrelevant_nodes(adj)
+        start_nodes = self._remove_irrelevant_nodes(adj, remove_nodes)
 
         n_edges = len(cand)
         edge_indices = np.arange(n_edges)
@@ -189,29 +153,35 @@ class LinksMerger:
         for edge_idx in tqdm(
             edge_indices, desc="Merging links", disable=n_edges < 1000
         ):
-            if edge_idx in seen:
-                continue
+            try:
+                if edge_idx in seen:
+                    continue
 
-            a, b = endpoints[edge_idx]
-            if a not in start_nodes and b not in start_nodes:
-                continue
+                a, b = endpoints[edge_idx]
+                if a not in start_nodes and b not in start_nodes:
+                    continue
 
-            walked = self._walk(edge_idx, start_nodes, adj, endpoints)
-            if not walked:
-                continue
+                walked = self._walk(edge_idx, start_nodes, adj, endpoints)
+                if not walked:
+                    continue
 
-            seen.update(walked["edges"])
-            edges = walked["edges"]
+                seen.update(walked["edges"])
+                edges = walked["edges"]
 
-            geom = self._merge_geometry(geoms[edges])
-            if geom is None or geom.is_empty:
-                continue
+                geom = self._merge_geometry(geoms[edges])
+                if geom is None or geom.is_empty:
+                    continue
 
-            starts.append(walked["start"])
-            ends.append(walked["end"])
-            n_edges_list.append(len(edges))
-            lengths.append(comps[edges].sum())
-            geoms_out.append(geom)
+                starts.append(walked["start"])
+                ends.append(walked["end"])
+                n_edges_list.append(len(edges))
+                lengths.append(comps[edges].sum())
+                geoms_out.append(geom)
+            except Exception as e:
+                print(f"Error processing edge {edge_idx}: {e}")
+                import ipdb
+
+                ipdb.set_trace()
 
         result_df = gpd.GeoDataFrame(
             {
