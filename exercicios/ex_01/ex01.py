@@ -8,6 +8,7 @@ Data: 15/09/2025
 """
 
 import logging
+import Path
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -26,14 +27,15 @@ def generate_network(N: int, k_medio: float, nome: str) -> None:
     plot_network(G, pos, nome, N, k_medio)
 
 
-def plot_network(G, pos, nome, N, k_medio):
+def plot_network(G, pos, nome, N, k_medio) -> None:
     """Plota a rede gerada."""
+    local_path = Path(__file__)
     plt.figure(figsize=(8, 8))
     nx.draw_networkx_nodes(G, pos, node_size=20, node_color="blue", alpha=0.6)
     nx.draw_networkx_edges(G, pos, width=0.2, alpha=0.4)
     plt.axis("off")
     plt.title(f"Rede {nome} (N={N}, k≈{k_medio})")
-    plt.savefig(f"rede_{nome}.png", dpi=300, bbox_inches="tight")
+    plt.savefig(f"{local_path}/rede_{nome}.png", dpi=300, bbox_inches="tight")
     plt.close()
 
 
