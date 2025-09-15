@@ -153,12 +153,13 @@ def check_geometry(df: Union[pd.DataFrame, gpd.GeoDataFrame]) -> pd.DataFrame:
 
 def merge_links(data: dict, ids: dict, pk: str, tension_level: str) -> tuple:
     """Merge links for both medium and high tension."""
+    df_links = data[f"links_{tension_level}"]
     nodes_ids = ids["nodes_ids"]
     path_links = ".".join([PATHS[tension_level]["links"], "parquet"])
     path_nodes = ".".join([PATHS[tension_level]["nodes"], "parquet"])
     links_merger = LinksMerger(nodes_ids, pk)
     if not os.path.exists(path_links) or not os.path.exists(path_nodes):
-        return links_merger.merge(data[f"links_{tension_level}"], tension_level)
+        return links_merger.merge(df_links, remove_nodes=True)
     df = pd.read_parquet(path_links)
     return check_geometry(df)
 
@@ -189,6 +190,17 @@ def get_endpoints(geom):
         return Point(first.coords[0]), Point(last.coords[-1])
 
     return None, None
+
+
+def clean_previous_files(tensions):
+    """Remove previous files if they exist."""
+    for tension_level in tensions:
+        path_links = ".".join([PATHS[tension_level]["links"], "parquet"])
+        path_nodes = ".".join([PATHS[tension_level]["nodes"], "parquet"])
+        if os.path.exists(path_links):
+            os.remove(path_links)
+        if os.path.exists(path_nodes):
+            os.remove(path_nodes)
 
 
 def save_data(data: dict, pk: str, tensions: str) -> None:
@@ -227,8 +239,10 @@ def save_data(data: dict, pk: str, tensions: str) -> None:
             df_nodes_links[pk].apply(map_points.__getitem__)
         ).astype(str)
 
-        df_links = df_links.drop(columns=["start_point", "end_point"]).astype(
-            {"geometry": str}
+        df_links = (
+            df_links.drop(columns=["start_point", "end_point"])
+            .astype({"geometry": str})
+            .drop_duplicates()
         )
         df_links.to_parquet(".".join([PATHS[tension_level]["links"], "parquet"]))
         df_nodes_links[cols_node].to_parquet(
@@ -237,7 +251,7 @@ def save_data(data: dict, pk: str, tensions: str) -> None:
         df_links.to_csv(
             ".".join([PATHS[tension_level]["links"], "csv"]), index=False, sep=";"
         )
-        df_nodes_links[cols_node].to_csv(
+        df_nodes_links[cols_node].drop_duplicates().to_csv(
             ".".join([PATHS[tension_level]["nodes"], "csv"]), index=False, sep=";"
         )
 
@@ -249,11 +263,18 @@ def save_data(data: dict, pk: str, tensions: str) -> None:
 
 def main():
     """Main function to execute the merging process."""
-    tensions = ["low_tension"]
+    tensions = ["high_tension", "medium_tension", "low_tension"]
     pk = "PN_CON"
+    clean_previous = True
+    if clean_previous:
+        clean_previous_files(tensions)
     data = load_nodes(pk)
     for tension_level in tensions:
-        logger.info("Processing %s", tension_level)
+        logger.info("--------------------------------------------------")
+        logger.info(
+            "----------------- PROCESSING %s ------------------", tension_level.upper()
+        )
+        logger.info("--------------------------------------------------")
         data = append_links(data, tension_level)
         ids = extract_ids(data, pk, tension_level)
         calculate_coverage(ids, tension_level)
