@@ -8,6 +8,7 @@ Data: 15/09/2025
 """
 
 import logging
+from typing import Tuple
 from pathlib import Path
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -16,15 +17,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def generate_network(N: int, k_medio: float, nome: str) -> None:
-    """Gera uma rede aleatória de Erdős-Rényi e plota a rede."""
+def generate_network(N: int, k_medio: float, nome: str) -> Tuple[nx.Graph, dict]:
+    """Gera uma rede aleatória de Erdős-Rényi."""
     p = k_medio / (N - 1)
     G = nx.erdos_renyi_graph(N, p)
     logger.info("Rede %s: k_medio=%s, p=%.5f", nome, k_medio, p)
     logger.info("Número de arestas geradas: %d", G.number_of_edges())
     logger.info("Grau médio: %.3f\n", sum(dict(G.degree()).values()) / N)
     pos = nx.spring_layout(G, seed=42)
-    plot_network(G, pos, nome, N, k_medio)
+    return G, pos
 
 
 def plot_network(G, pos, nome, N, k_medio) -> None:
@@ -45,4 +46,5 @@ def main():
     N = 500
     k_values = [0.8, 1.0, 8.0]
     for k in k_values:
-        generate_network(N, k, f"rede_{k}")
+        G, pos = generate_network(N, k, f"rede_{k}")
+        plot_network(G, pos, f"rede_{k}", N, k)
