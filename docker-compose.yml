@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  development:
+    # Utiliza la imagen base optimizada que definimos en el Dockerfile.
+    # El punto "." le dice a Docker Compose que busque el Dockerfile en el directorio actual.
+    build:
+      context: .
+      dockerfile: .devcontainer/Dockerfile
+    
+    # Monta el directorio del proyecto para la persistencia de datos y código.
+    volumes:
+      - .:/app
+
+    # Reenvía el puerto de Jupyter Notebook para poder accederlo desde el navegador local.
+    ports:
+      - "8888:8888"
+    
+    # Otorga una shell interactiva y una pseudo-tty para poder ejecutar comandos.
+    stdin_open: true
+    tty: true
+
+    # Configuración de variables de entorno, útil para credenciales y configuraciones.
+    # Por ejemplo, para acceder a un .env local.
+    env_file:
+      - .env
+
+    # Asigna recursos del sistema, como memoria, CPU y, lo más importante, GPU.
+    # Esto es crucial para el entrenamiento de modelos de Deep Learning.
+    deploy:
+      resources:
+        reservations:
+          # Limita el uso de CPU a 2 núcleos para evitar que el contenedor acapare los recursos.
+          cpus: "2"
+          # Limita la memoria RAM a 4 GB para evitar problemas de agotamiento de memoria.
+          memory: 4G
+          # devices:
+          #   - driver: nvidia
+          #     count: all
+          #     capabilities: [gpu]
+
+    # Sobreescribe el comando por defecto del Dockerfile para iniciar Jupyter Lab.
+    command: ["/bin/bash"]

@@ -1,0 +1,43 @@
+{
+    "name": "mo412",
+    "dockerComposeFile": [
+        "../docker-compose.yml"
+    ],
+    "service": "development",
+
+    "workspaceFolder": "/app",
+
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "streetsidesoftware.code-spell-checker",
+                "streetsidesoftware.code-spell-checker-spanish",
+                "eamodio.gitlens",
+                "ms-python.python", // Paquete principal de Python en VS Code
+                "ms-python.vscode-pylance", // Servidor de lenguaje de Python
+                "ms-toolsai.jupyter", // Soporte para Jupyter Notebooks
+                "ms-toolsai.datawrangler",
+                "iterative.dvc", // Para versionar datos
+                "iterative.vscode-dvc-pack", // Paquete DVC
+                "njpwerner.autodocstring",
+                "redhat.vscode-yaml",
+                "charliermarsh.ruff", // Linter y formateador de Python
+                "ms-toolsai.tensorboard"
+            ],
+            "settings": {
+                "python.defaultInterpreterPath": "/usr/local/bin/python"
+                // "python.analysis.autoImportModules": [
+                //     "sklearn",
+                //     "numpy",
+                //     "pandas"
+                // ]
+            }
+        }
+    },
+    
+    "shutdownAction": "none",
+    "forwardPorts": [8888],
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/app,type=bind,consistency=delegated"
+    ]
+}
