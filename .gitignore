@@ -4,6 +4,8 @@ __pycache__/
 *.csv
 *.zip
 *.qgz
+*.pickle
+*.log
 build/
 *egg-info/
 .vscode/

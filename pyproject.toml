@@ -33,6 +33,7 @@ dependencies = [
     "tqdm>=4.67.1",
     "networkx>=3.4.2",
     "powerlaw>=1.5.0",
+    "pyvis"
 ]
 
 [project.optional-dependencies]
