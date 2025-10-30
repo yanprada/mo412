@@ -7,14 +7,35 @@ ENV TZ=America/Sao_Paulo
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Instala las dependencias del sistema en una sola capa para reducir el tamaño de la imagen.
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
     build-essential \
     ffmpeg \
     libsm6 \
     libxext6 \
     git \
     python3-tk \
-    && rm -rf /var/lib/apt/lists/*
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# RUN apt-get update && \
+#     apt-get install -y --no-install-recommends \
+#     # Dependencias de compilación y multimedia (necesarias si usas OpenCV/otros)
+#     build-essential \
+#     ffmpeg \
+#     libsm6 \
+#     libxext6 \
+#     git \
+#     python3-tk \
+#     # === REQUERIMIENTO PARA LATEX EN MATPLOTLIB ===
+#     # Instala paquetes de TeX minimal (texlive-base, latex-base, dvipng, cm-super)
+#     texlive-base \
+#     texlive-latex-base \
+#     texlive-fonts-recommended \
+#     dvipng \
+#     cm-super \
+#     # ===============================================
+#     # Limpia el caché para reducir el tamaño de la imagen
+#     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copia los archivos de configuración y el código fuente.
 # Esto optimiza el caché de Docker: si los archivos clave no cambian, no se reconstruyen.

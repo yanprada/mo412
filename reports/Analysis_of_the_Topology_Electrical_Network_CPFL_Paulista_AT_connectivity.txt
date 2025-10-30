@@ -1,0 +1,37 @@
+
+        =====================================================
+        CONNECTIVITY AND SCALE REPORT
+        =====================================================
+        Date and Time of Analysis: 2025-10-06 23:12:00
+        -----------------------------------------------------
+
+        [1. SCALE METRICS AND GLOBAL TOPOLOGY]
+        - Total Nodes (|V|): -------------- 21,465
+        - Total Links (|K|): -------------- 14,771
+        - Total Connected Components: ----- 6694
+        - Average Density (E/V Ratio): ---- 0.688
+
+        [2. DEGREE CENTRALITY ANALYSIS]
+        - Maximum Degree (Network Hubs): -- 4
+        - Intermediate Grade (|k|): ------- 1.376
+        - Standard Deviation of Grade: ---- 0.487
+        
+        [3. REDUNDANCY AND MAIN COMPONENT]
+        - Nodes in the C. P.: ------------- 146 nodes
+        - Network Percentage: ------------- 0.680%
+        - Gamma (gamma - CP Redundancy): -- 0.014
+
+        [4. ARTICULATION POINTS]
+        - Total articulation point: ------- 8050.000
+        - Network Percentage: ------------- 37.503
+
+        -----------------------------------------------------
+        INTERPRETACIÓN EXPERTA:
+        - If the Principal Component Percentage is < 95%, it means that a significant portion of the delivery points are not connected to the main body, requiring a data quality inspection or confirmation that these are isolated systems.
+        - Average Density indicates the redundancy of the network, if a low value <1.5 may suggest a topology closer to a tree or radial network.
+        - Standard Deviation: A high value implies a heterogeneous network (few nodes control connectivity).
+        - Gamma (gamma): Measures how “close” your network is to being a complete graph. In distributed networks, this value will be extremely low (close to zero) due to the radial or branched topology.
+        - The lower the percentage of articulation points in a network, the more robust the network.
+
+        =====================================================
+        

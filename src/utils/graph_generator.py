@@ -1,16 +1,26 @@
 import logging
+import os
 
 import networkx as nx
 import pandas as pd
 
-from .save_load_graph import save_graph
 from .haversine import haversine
+from .save_load_graph import save_graph
+from .view_graph_topology import view_graph_topology
 
 logger = logging.getLogger(__name__)
 
 
 class GraphGenerator:
-    def __init__(self, path_nodes: str, path_links: str):
+    def __init__(
+        self,
+        path_nodes: str,
+        path_links: str,
+        name: str = "Network Topology",
+        threshold_km=1.0,
+    ):
+        self.name = name
+        self.threshold_km = threshold_km
         self.G = nx.Graph()
 
         logger.info(f"Loading data from {path_nodes} y {path_links}...")
@@ -34,7 +44,11 @@ class GraphGenerator:
             df_links = pd.read_csv(
                 path_links,
                 usecols=["COD_ID", "PN_CON_1", "PN_CON_2"],
-                dtype={"COD_ID": str},
+                dtype={
+                    "COD_ID": str,
+                    "PN_CON_1": "str",
+                    "PN_CON_2": "str",
+                },
             )
 
             self.df_links = df_links.rename(
@@ -51,7 +65,20 @@ class GraphGenerator:
             logger.error(f"ERROR: File not found {e.filename}. Check the route")
             exit()
 
-    def cleaning_anomalous_links(self, threshold_km: int = 90):
+    def __cleaning_nodes_isolated(self):
+        """Remove nodes that are not referenced or are not part of the network."""
+
+        logger.info("Starting cleanup of isolated nodes.")
+
+        b1 = self.df_links["Input"].tolist()
+        b2 = self.df_links["Output"].tolist()
+
+        c = set(b1).union(set(b2))
+        self.df_nodos = self.df_nodos[self.df_nodos["Nodo_ID"].isin(c)]
+
+        logger.info("Completing cleanup of isolated nodes.")
+
+    def __cleaning_anomalous_links(self):
         logger.info("Start of anomalous link cleanup")
 
         # Ensure IDs are of the same type for the merge
@@ -104,35 +131,21 @@ class GraphGenerator:
         )
 
         # Filter links that exceed the threshold
-        df_bad_links = df_bad_links[
-            df_bad_links["Distance_KM"] > threshold_km
-        ].sort_values(by="Distance_KM", ascending=False)
+        df_bad_links = df_bad_links[df_bad_links["Distance_KM"] > self.threshold_km]
 
-        logger.info(f"ANOMALOUS LINKS IDENTIFIED (> {threshold_km} KM)")
+        logger.info(f"ANOMALOUS LINKS IDENTIFIED (> {self.threshold_km} KM)")
 
         if df_bad_links.empty:
             logger.info("No links were found that exceed the threshold")
         else:
             # Select the relevant columns and format the distance
-            df_bad_links = df_bad_links[
-                [
-                    "Link_ID",
-                    "Input",
-                    "Output",
-                    "Distance_KM",
-                ]
-            ].head(10)
-
             df_bad_links["Distance_KM"] = (
                 df_bad_links["Distance_KM"].round(2).astype(str) + " km"
             )
 
-            logger.info("Anomalous links identified")
-            logger.info(df_bad_links.to_string(index=False))
-            logger.info("Eliminating anomalous links")
+            logger.info("Anomalous links identified. Eliminating anomalous links.")
 
             links_to_delete = df_bad_links["Link_ID"].tolist()
-
             self.df_links = self.df_links[
                 ~self.df_links["Link_ID"].isin(links_to_delete)
             ]
@@ -141,12 +154,12 @@ class GraphGenerator:
 
         del df_bad_links
 
-    def graph_creating_model(self):
+    def __graph_creating_model(self):
         logger.info("Starting graph modeling.")
 
         # Add Nodes
         self.geo = {}
-        for index, row in self.df_nodos.iterrows():
+        for _index, row in self.df_nodos.iterrows():
             self.G.add_node(
                 row["Nodo_ID"], latitude=row["Latitude"], length=row["Length"]
             )
@@ -154,7 +167,7 @@ class GraphGenerator:
             # Save position (Longitude, Latitude) for geographic layout
             self.geo[row["Nodo_ID"]] = (row["Latitude"], row["Length"])
         # Adding Edges (Links)
-        for index, row in self.df_links.iterrows():
+        for _index, row in self.df_links.iterrows():
             # Solo añadir el link si ambos nodos de conexión existen en el grafo
             if row["Input"] in self.G and row["Output"] in self.G:
                 self.G.add_edge(row["Input"], row["Output"])
@@ -175,6 +188,21 @@ class GraphGenerator:
             f"Is the network connected? {'Sí' if nx.is_connected(self.G) else 'No'}. (It could be composed of several separate components)."
         )
 
-    def graph_save(self, path_save: str):
+        path_save = os.path.join(
+            "./data/graph", self.name.replace(" ", "_") + ".pickle"
+        )
         logger.info(f"Saving graph in {path_save}")
         save_graph(path_save=path_save, graph=self.G)
+
+        logger.info("Graphics modeling completed.")
+
+    def __view(self):
+        view_graph_topology(graph=self.G, title=self.name)
+
+    def create_graph(self, view=True):
+        self.__cleaning_anomalous_links()
+        self.__cleaning_nodes_isolated()
+        self.__graph_creating_model()
+
+        if view:
+            self.__view()
