@@ -1,0 +1,13 @@
+
+        =======================================================================
+        CONNECTED COMPONENTS (SUBNETS >= 2 NODES) REPORT
+        =======================================================================
+        - Total "Real" Subnets: ----------- 16446
+        - Discarded Isolated Components: -- 0
+        - Average Subnet Size: ------------ 99.326 nodes
+        - Maximum Subnet Size (non-LCC): -- 89397 nodes
+        
+        (Note: The Largest Connected Component (LCC) is reported
+         in the main connectivity report.)
+        =======================================================================
+        
