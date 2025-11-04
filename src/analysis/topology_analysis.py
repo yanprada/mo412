@@ -96,7 +96,7 @@ class TopologyAnalysis:
         [3. REDUNDANCY AND MAIN COMPONENT]
         - Nodes in the C. P.: ------------- {main_component_size:,} nodes
         - Network Percentage: ------------- {percentage_main_component:.3f}%
-        - Gamma (gamma - CP Redundancy): -- {gamma:.3f}
+        - Gamma (gamma - CP Redundancy): -- {gamma:.6f}
 
         [4. ARTICULATION POINTS]
         - Total articulation point: ------- {num_joint_points:.3f}
@@ -334,7 +334,7 @@ class TopologyAnalysis:
         print(f"ANÁLISIS DE CRITICIDAD (OPTIMIZADO CON MUESTREO k={k})")
         print(f"Total de Puntos de Articulación Encontrados: {num_articulacion:,}")
         print("="*70)
-        print(f"\n--- TOP 10 Nodos de Articulación MÁS CRÍTICOS (por Intermediación) ---")
+        print("\n--- TOP 10 Nodos de Articulación MÁS CRÍTICOS (por Intermediación) ---")
         print(df_criticos_ordenado[['COD_ID', 'Intermediacion_CB', 'Criticidad_Normalizada']].to_string(index=False))
         logger.info("Análisis de criticidad (muestreo) completado exitosamente.")
 

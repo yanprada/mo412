@@ -5,21 +5,20 @@ import networkx as nx
 
 from analysis.topology_analysis import TopologyAnalysis
 from utils.configuration_log import configure_logging_global
-from utils.graph_generator import GraphGenerator
+from analysis.graph_generator import GraphGenerator
 from utils.save_load_graph import load_graph
-from utils.view_graph_topology import view_graph_topology
 
 configure_logging_global()
 logger = logging.getLogger(__name__)
 
 # # # --- 1. Definition of Files ---
-NODE_FILE_NAME = "./data/processed/CPFL_Paulista_2023-Nodos.csv"
-FILE_NAME_LINKS_BT = "./data/processed/CPFL_Paulista_2023-SSDBT.csv"
-FILE_NAME_LINKS_MT = "./data/processed/CPFL_Paulista_2023-SSDMT.csv"
-FILE_NAME_LINKS_AT = "./data/processed/CPFL_Paulista_2023-SSDAT.csv"
+NODE_FILE_NAME = "./data/raw/CPFL_Paulista_2023-Nodos.csv"
+FILE_NAME_LINKS_BT = "./data/raw/CPFL_Paulista_2023-SSDBT.csv"
+FILE_NAME_LINKS_MT = "./data/raw/CPFL_Paulista_2023-SSDMT.csv"
+FILE_NAME_LINKS_AT = "./data/raw/CPFL_Paulista_2023-SSDAT.csv"
 
-generate_graphs = False
-topological_analysis = True
+generate_graphs = True
+topological_analysis = False
 
 if generate_graphs:
     gen_bt = GraphGenerator(
@@ -49,7 +48,7 @@ if generate_graphs:
 if topological_analysis:
     logger.info("INICIO del Análisis de Topología CPFL Paulista.")
     FILE_SAVE_GRAPH = (
-        "./data/graph/CPFL_Paulista_AT_Electrical_Network_Topology.pickle"
+        "./data/graph/CPFL_Paulista_MT_Electrical_Network_Topology.pickle"
     )
 
     G = load_graph(path_load=FILE_SAVE_GRAPH)

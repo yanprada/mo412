@@ -2,28 +2,28 @@
         =====================================================
         CONNECTIVITY AND SCALE REPORT
         =====================================================
-        Date and Time of Analysis: 2025-10-06 23:12:00
+        Date and Time of Analysis: 2025-11-04 14:39:17
         -----------------------------------------------------
 
         [1. SCALE METRICS AND GLOBAL TOPOLOGY]
-        - Total Nodes (|V|): -------------- 21,465
-        - Total Links (|K|): -------------- 14,771
-        - Total Connected Components: ----- 6694
-        - Average Density (E/V Ratio): ---- 0.688
+        - Total Nodes (|V|): -------------- 1,672,753
+        - Total Links (|K|): -------------- 1,687,473
+        - Total Connected Components: ----- 102
+        - Average Density (E/V Ratio): ---- 1.009
 
         [2. DEGREE CENTRALITY ANALYSIS]
-        - Maximum Degree (Network Hubs): -- 4
-        - Intermediate Grade (|k|): ------- 1.376
-        - Standard Deviation of Grade: ---- 0.487
+        - Maximum Degree (Network Hubs): -- 8
+        - Intermediate Grade (|k|): ------- 2.018
+        - Standard Deviation of Grade: ---- 0.593
         
         [3. REDUNDANCY AND MAIN COMPONENT]
-        - Nodes in the C. P.: ------------- 146 nodes
-        - Network Percentage: ------------- 0.680%
-        - Gamma (gamma - CP Redundancy): -- 0.014
+        - Nodes in the C. P.: ------------- 544,819 nodes
+        - Network Percentage: ------------- 32.570%
+        - Gamma (gamma - CP Redundancy): -- 0.000004
 
         [4. ARTICULATION POINTS]
-        - Total articulation point: ------- 8050.000
-        - Network Percentage: ------------- 37.503
+        - Total articulation point: ------- 976686.000
+        - Network Percentage: ------------- 58.388
 
         -----------------------------------------------------
         INTERPRETACIÓN EXPERTA:
