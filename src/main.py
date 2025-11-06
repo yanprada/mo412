@@ -35,19 +35,19 @@ logger = logging.getLogger(__name__)
 # Control flags to determine which parts of the pipeline to run.
 # This is efficient: run generation once, then set to False
 # and run analysis multiple times.
-generate_graphs = True
-topological_analysis = True
+generate_graphs = False
+topological_analysis = False
 
 
 # --- 2. PHASE 1: Graph Generation (ETL) ---
 if generate_graphs:
     logger.info("PHASE 1: Starting Graph Generation (ETL)...")
-    
+
     # --- File Definitions ---
     NODE_FILE_NAME = "./data/raw/CPFL_Paulista_2023-Nodos.csv"
-    FILE_NAME_LINKS_BT = "./data/raw/CPFL_Paulista_2023-SSDBT.csv" # Low Voltage
-    FILE_NAME_LINKS_MT = "./data/raw/CPFL_Paulista_2023-SSDMT.csv" # Medium Voltage
-    FILE_NAME_LINKS_AT = "./data/raw/CPFL_Paulista_2023-SSDAT.csv" # High Voltage
+    FILE_NAME_LINKS_BT = "./data/raw/CPFL_Paulista_2023-SSDBT.csv"  # Low Voltage
+    FILE_NAME_LINKS_MT = "./data/raw/CPFL_Paulista_2023-SSDMT.csv"  # Medium Voltage
+    FILE_NAME_LINKS_AT = "./data/raw/CPFL_Paulista_2023-SSDAT.csv"  # High Voltage
 
     # --- Process Low Voltage (BT) Network ---
     logger.info("Processing Low Voltage (BT) Network...")
@@ -56,7 +56,7 @@ if generate_graphs:
         path_nodes=NODE_FILE_NAME,
         name="CPFL Paulista BT Electrical Network Topology",
         # Note: BT is mostly radial, a low threshold is appropriate
-        threshold_km=1.0 
+        threshold_km=1.0,
     )
     gen_bt.create_graph()
     del gen_bt  # Clear memory before processing the next large graph
@@ -67,7 +67,7 @@ if generate_graphs:
         path_links=FILE_NAME_LINKS_MT,
         path_nodes=NODE_FILE_NAME,
         name="CPFL Paulista MT Electrical Network Topology",
-        threshold_km=2.0 # MT links can be longer
+        threshold_km=2.0,  # MT links can be longer
     )
     gen_mt.create_graph()
     del gen_mt  # Clear memory
@@ -78,7 +78,7 @@ if generate_graphs:
         path_links=FILE_NAME_LINKS_AT,
         path_nodes=NODE_FILE_NAME,
         name="CPFL Paulista AT Electrical Network Topology",
-        threshold_km=10.0 # AT links are much longer
+        threshold_km=10.0,  # AT links are much longer
     )
     gen_at.create_graph()
     del gen_at  # Clear memory
@@ -103,7 +103,7 @@ if topological_analysis:
     FILE_NAME_GRAPH_AT = (
         "./data/graph/CPFL_Paulista_AT_Electrical_Network_Topology.pickle"
     )
-    
+
     # --- Analyze Low Voltage (BT) ---
     try:
         logger.info("Loading and analyzing BT Network...")
@@ -112,10 +112,12 @@ if topological_analysis:
         analysis_bt.connectivity_scale()
         analysis_bt.components_distribution_analysis()
         del G_bt, analysis_bt  # Clear memory
-        
+
     except FileNotFoundError:
-        logger.error(f"FATAL: BT graph file not found at {FILE_NAME_GRAPH_BT}. "
-                     "Run with generate_graphs=True first.")
+        logger.error(
+            f"FATAL: BT graph file not found at {FILE_NAME_GRAPH_BT}. "
+            "Run with generate_graphs=True first."
+        )
     except Exception as e:
         logger.error(f"An error occurred during BT analysis: {e}")
 
@@ -127,10 +129,12 @@ if topological_analysis:
         analysis_mt.connectivity_scale()
         analysis_mt.components_distribution_analysis()
         del G_mt, analysis_mt  # Clear memory
-        
+
     except FileNotFoundError:
-        logger.error(f"FATAL: MT graph file not found at {FILE_NAME_GRAPH_MT}. "
-                     "Run with generate_graphs=True first.")
+        logger.error(
+            f"FATAL: MT graph file not found at {FILE_NAME_GRAPH_MT}. "
+            "Run with generate_graphs=True first."
+        )
     except Exception as e:
         logger.error(f"An error occurred during MT analysis: {e}")
 
@@ -142,10 +146,12 @@ if topological_analysis:
         analysis_at.connectivity_scale()
         analysis_at.components_distribution_analysis()
         del G_at, analysis_at  # Clear memory
-        
+
     except FileNotFoundError:
-        logger.error(f"FATAL: AT graph file not found at {FILE_NAME_GRAPH_AT}. "
-                     "Run with generate_graphs=True first.")
+        logger.error(
+            f"FATAL: AT graph file not found at {FILE_NAME_GRAPH_AT}. "
+            "Run with generate_graphs=True first."
+        )
     except Exception as e:
         logger.error(f"An error occurred during AT analysis: {e}")
 
@@ -155,3 +161,25 @@ else:
     logger.info("PHASE 2: Topological Analysis skipped by configuration.")
 
 logger.info("CPFL Paulista Network Analysis pipeline finished.")
+
+
+# --------------------
+
+from analysis.criticality_analysis import CriticalityAnalysis
+
+FILE_NAME_GRAPH_BT = "./data/graph/CPFL_Paulista_BT_Electrical_Network_Topology.pickle"
+
+# --- Analyze Low Voltage (BT) ---
+try:
+    logger.info("Loading and analyzing BT Network...")
+    G_bt = load_graph(path_load=FILE_NAME_GRAPH_BT)
+    a = CriticalityAnalysis(graph=G_bt, k_sample=5, n_processes=24)
+    a.analizar_criticidad_paralela()
+
+except FileNotFoundError:
+    logger.error(
+        f"FATAL: BT graph file not found at {FILE_NAME_GRAPH_BT}. "
+        "Run with generate_graphs=True first."
+    )
+except Exception as e:
+    logger.error(f"An error occurred during BT analysis: {e}")
