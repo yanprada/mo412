@@ -2,7 +2,7 @@
 Main Orchestration Script for CPFL Network Topology Analysis.
 
 This script serves as the main entry point for the pipeline. It controls
-two distinct phases:
+three distinct phases:
 
 1.  Graph Generation (ETL): Loads raw CSV data, cleans it, builds the
     NetworkX graph objects, and saves them to disk as '.pickle' files.
@@ -12,19 +12,22 @@ two distinct phases:
     and runs the static topological analysis (connectivity, components, etc.)
     on them, generating text and plot reports.
     (Controlled by `topological_analysis`)
+
+3.  Failure Analysis: Simulates network failures and attacks to analyze
+    robustness.
+    (Controlled by `failure_analysis`)
 """
 
 import logging
 
-from analysis.graph_generator import GraphGenerator
+from src.analysis.graph_generator import GraphGenerator
 
-# --- 3rd Party Imports ---
-# import matplotlib.pyplot as plt  # Not used directly here, but in analysis
-# import networkx as nx            # Not used directly here, but in analysis
 # --- Custom Module Imports ---
-from analysis.topology_analysis import TopologyAnalysis
-from utils.configuration_log import configure_logging_global
-from utils.save_load_graph import load_graph
+from src.analysis.topology_analysis import TopologyAnalysis
+from src.analysis.criticality_analysis import CriticalityAnalysis
+from src.analysis.failure_analysis import FailureAnalysis
+from src.utils.configuration_log import configure_logging_global
+from src.utils.save_load_graph import load_graph
 
 # --- 1. Global Configuration & Logging ---
 
@@ -37,6 +40,8 @@ logger = logging.getLogger(__name__)
 # and run analysis multiple times.
 generate_graphs = False
 topological_analysis = False
+failure_analysis = True
+criticality_analysis = False
 
 
 # --- 2. PHASE 1: Graph Generation (ETL) ---
@@ -160,26 +165,88 @@ if topological_analysis:
 else:
     logger.info("PHASE 2: Topological Analysis skipped by configuration.")
 
-logger.info("CPFL Paulista Network Analysis pipeline finished.")
 
+# --- 4. PHASE 3: Failure Analysis ---
+if failure_analysis:
+    logger.info("PHASE 3: Starting Failure Analysis...")
 
-# --------------------
+    # --- Path definitions for pre-built graphs ---
+    graphs_config = [
+        {
+            "path": "./data/graph/CPFL_Paulista_BT_Electrical_Network_Topology.pickle",
+            "tension": "BT",
+            "name": "Low Voltage (BT)",
+        },
+        {
+            "path": "./data/graph/CPFL_Paulista_MT_Electrical_Network_Topology.pickle",
+            "tension": "MT",
+            "name": "Medium Voltage (MT)",
+        },
+        {
+            "path": "./data/graph/CPFL_Paulista_AT_Electrical_Network_Topology.pickle",
+            "tension": "AT",
+            "name": "High Voltage (AT)",
+        },
+    ]
 
-from analysis.criticality_analysis import CriticalityAnalysis
+    for config in graphs_config:
+        try:
+            logger.info(f"Starting failure analysis for {config['name']} Network...")
 
-FILE_NAME_GRAPH_BT = "./data/graph/CPFL_Paulista_BT_Electrical_Network_Topology.pickle"
+            failure_analyzer = FailureAnalysis(pickle_path=config["path"])
 
-# --- Analyze Low Voltage (BT) ---
-try:
-    logger.info("Loading and analyzing BT Network...")
-    G_bt = load_graph(path_load=FILE_NAME_GRAPH_BT)
-    a = CriticalityAnalysis(graph=G_bt, k_sample=5, n_processes=24)
-    a.analizar_criticidad_paralela()
+            # Run failure simulations
+            logger.info(f"Running random failure simulation for {config['name']}...")
+            f_and_p_random = failure_analyzer.simulate_failure("random")
 
-except FileNotFoundError:
-    logger.error(
-        f"FATAL: BT graph file not found at {FILE_NAME_GRAPH_BT}. "
-        "Run with generate_graphs=True first."
+            logger.info(f"Running targeted attack simulation for {config['name']}...")
+            f_and_p_degree = failure_analyzer.simulate_failure("degree")
+
+            # Generate and save plots
+            failure_analyzer.plot_failures(
+                f_and_p_random=f_and_p_random,
+                f_and_p_degree=f_and_p_degree,
+                tension=config["tension"],
+            )
+
+            logger.info(f"Failure analysis complete for {config['name']} Network.")
+
+        except FileNotFoundError:
+            logger.error(
+                f"FATAL: Graph file not found at {config['path']}. "
+                "Run with generate_graphs=True first."
+            )
+        except Exception as e:
+            logger.error(
+                f"An error occurred during {config['name']} failure analysis: {e}"
+            )
+
+    logger.info("PHASE 3: Failure Analysis complete.")
+
+else:
+    logger.info("PHASE 3: Failure Analysis skipped by configuration.")
+
+if criticality_analysis:
+    logger.info("PHASE 4: Starting Criticality Analysis...")
+    # --- 5. Criticality Analysis ---
+    FILE_NAME_GRAPH_BT = (
+        "./data/graph/CPFL_Paulista_BT_Electrical_Network_Topology.pickle"
     )
-except Exception as e:
-    logger.error(f"An error occurred during BT analysis: {e}")
+
+    # --- Analyze Low Voltage (BT) ---
+    try:
+        logger.info("Loading and analyzing BT Network...")
+        G_bt = load_graph(path_load=FILE_NAME_GRAPH_BT)
+        a = CriticalityAnalysis(graph=G_bt, k_sample=5, n_processes=24)
+        a.analizar_criticidad_paralela()
+
+    except FileNotFoundError:
+        logger.error(
+            f"FATAL: BT graph file not found at {FILE_NAME_GRAPH_BT}. "
+            "Run with generate_graphs=True first."
+        )
+    except Exception as e:
+        logger.error(f"An error occurred during BT analysis: {e}")
+else:
+    logger.info("PHASE 4: Criticality Analysis skipped by configuration.")
+logger.info("CPFL Paulista Network Analysis pipeline finished.")

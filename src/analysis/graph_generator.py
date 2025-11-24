@@ -7,7 +7,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from utils.save_load_graph import save_graph
+from src.utils.save_load_graph import save_graph
 
 logger = logging.getLogger(__name__)
 
