@@ -1,252 +1,338 @@
 """
 Main Orchestration Script for CPFL Network Topology Analysis.
 
-This script serves as the main entry point for the pipeline. It controls
-three distinct phases:
+This script acts as the central pipeline controller for analyzing the electrical 
+network topology of CPFL Paulista. It manages the workflow through boolean flags,
+allowing for modular execution of different analysis phases.
 
-1.  Graph Generation (ETL): Loads raw CSV data, cleans it, builds the
-    NetworkX graph objects, and saves them to disk as '.pickle' files.
-    (Controlled by `generate_graphs`)
+The pipeline consists of six distinct phases:
+1.  Graph Generation (ETL): Ingests raw CSV data, cleans it, and serializes NetworkX graphs.
+2.  Topological Analysis: Calculates static metrics (degree, components) and generates maps.
+3.  Criticality Analysis: Identifies critical nodes using parallelized Betweenness Centrality.
+4.  Failure Analysis: Simulates random and targeted attacks on the original networks.
+5.  Redundancy Analysis: Identifies strategic "Tie-Lines" to create loops and improve robustness.
+6.  Comparative Analysis: Compares the robustness of the original network vs. the optimized network.
 
-2.  Topological Analysis: Loads the pre-built '.pickle' graphs from disk
-    and runs the static topological analysis (connectivity, components, etc.)
-    on them, generating text and plot reports.
-    (Controlled by `topological_analysis`)
-
-3.  Failure Analysis: Simulates network failures and attacks to analyze
-    robustness.
-    (Controlled by `failure_analysis`)
+Usage:
+    Set the boolean flags in the `PIPELINE_FLAGS` dictionary to True/False 
+    to enable or disable specific phases.
 """
 
 import logging
+import os
 
-from src.analysis.graph_generator import GraphGenerator
+# --- Internal Module Imports ---
+from utils.configuration_log import configure_logging_global
+from utils.save_load_graph import load_graph
 
-# --- Custom Module Imports ---
-from src.analysis.topology_analysis import TopologyAnalysis
-from src.analysis.criticality_analysis import CriticalityAnalysis
-from src.analysis.failure_analysis import FailureAnalysis
-from src.utils.configuration_log import configure_logging_global
-from src.utils.save_load_graph import load_graph
+# Analysis Modules
+from analysis.graph_generator import GraphGenerator
+from analysis.topology_analysis import TopologyAnalysis
+from analysis.criticality_analysis import CriticalityAnalysis
+from analysis.failure_analysis import FailureAnalysis
+from analysis.redundancy_analysis import RedundancyAnalysis
+from analysis.comparative_failure_analysis import ComparativeFailureAnalysis
 
-# --- 1. Global Configuration & Logging ---
+# --- 1. Global Configuration & Setup ---
 
-# Configure the global logger (e.g., set level, format)
 configure_logging_global()
 logger = logging.getLogger(__name__)
 
-# Control flags to determine which parts of the pipeline to run.
-# This is efficient: run generation once, then set to False
-# and run analysis multiple times.
-generate_graphs = False
-topological_analysis = False
-failure_analysis = True
-criticality_analysis = False
+# Pipeline Control Flags
+PIPELINE_FLAGS = {
+    "generate_graphs": True,       # Phase 1: ETL from CSV to Pickle
+    "topology_analysis": True,      # Phase 2: Static Metrics & Visualization
+    "criticality_analysis": True,  # Phase 3: Betweenness & Articulation Points
+    "failure_analysis": True,      # Phase 4: Robustness of Original Graph
+    "redundancy_analysis": True,    # Phase 5: Propose Investments & Gen. Optimized Graph
+    "comparative_analysis": True    # Phase 6: Validate Investment (Original vs Optimized)
+}
+
+# Centralized Path Configuration
+DATA_PATHS = {
+    "raw_nodes": "./data/raw/CPFL_Paulista_2023-Nodos.csv",
+    "raw_links": {
+        "BT": "./data/raw/CPFL_Paulista_2023-SSDBT.csv",
+        "MT": "./data/raw/CPFL_Paulista_2023-SSDMT.csv",
+        "AT": "./data/raw/CPFL_Paulista_2023-SSDAT.csv",
+    },
+    "graphs": {
+        "BT": "./data/graph/CPFL_Paulista_BT_Electrical_Network_Topology.pickle",
+        "MT": "./data/graph/CPFL_Paulista_MT_Electrical_Network_Topology.pickle",
+        "AT": "./data/graph/CPFL_Paulista_AT_Electrical_Network_Topology.pickle",
+    }
+}
 
 
-# --- 2. PHASE 1: Graph Generation (ETL) ---
-if generate_graphs:
+# --- Phase 1: Graph Generation ---
+def run_graph_generation():
     logger.info("PHASE 1: Starting Graph Generation (ETL)...")
+    
+    # Configuration for each voltage level
+    configs = [
+        {"type": "BT", "thresh": 1.0, "name": "CPFL Paulista BT Electrical Network Topology"},
+        {"type": "MT", "thresh": 2.0, "name": "CPFL Paulista MT Electrical Network Topology"},
+        {"type": "AT", "thresh": 10.0, "name": "CPFL Paulista AT Electrical Network Topology"},
+    ]
 
-    # --- File Definitions ---
-    NODE_FILE_NAME = "./data/raw/CPFL_Paulista_2023-Nodos.csv"
-    FILE_NAME_LINKS_BT = "./data/raw/CPFL_Paulista_2023-SSDBT.csv"  # Low Voltage
-    FILE_NAME_LINKS_MT = "./data/raw/CPFL_Paulista_2023-SSDMT.csv"  # Medium Voltage
-    FILE_NAME_LINKS_AT = "./data/raw/CPFL_Paulista_2023-SSDAT.csv"  # High Voltage
-
-    # --- Process Low Voltage (BT) Network ---
-    logger.info("Processing Low Voltage (BT) Network...")
-    gen_bt = GraphGenerator(
-        path_links=FILE_NAME_LINKS_BT,
-        path_nodes=NODE_FILE_NAME,
-        name="CPFL Paulista BT Electrical Network Topology",
-        # Note: BT is mostly radial, a low threshold is appropriate
-        threshold_km=1.0,
-    )
-    gen_bt.create_graph()
-    del gen_bt  # Clear memory before processing the next large graph
-
-    # --- Process Medium Voltage (MT) Network ---
-    logger.info("Processing Medium Voltage (MT) Network...")
-    gen_mt = GraphGenerator(
-        path_links=FILE_NAME_LINKS_MT,
-        path_nodes=NODE_FILE_NAME,
-        name="CPFL Paulista MT Electrical Network Topology",
-        threshold_km=2.0,  # MT links can be longer
-    )
-    gen_mt.create_graph()
-    del gen_mt  # Clear memory
-
-    # --- Process High Voltage (AT) Network ---
-    logger.info("Processing High Voltage (AT) Network...")
-    gen_at = GraphGenerator(
-        path_links=FILE_NAME_LINKS_AT,
-        path_nodes=NODE_FILE_NAME,
-        name="CPFL Paulista AT Electrical Network Topology",
-        threshold_km=10.0,  # AT links are much longer
-    )
-    gen_at.create_graph()
-    del gen_at  # Clear memory
+    for cfg in configs:
+        tension = cfg["type"]
+        logger.info(f"Processing {tension} Network...")
+        try:
+            generator = GraphGenerator(
+                path_links=DATA_PATHS["raw_links"][tension],
+                path_nodes=DATA_PATHS["raw_nodes"],
+                name=cfg["name"],
+                threshold_km=cfg["thresh"],
+            )
+            generator.create_graph(view=False) # View=False for batch processing
+            del generator # Force memory release
+        except Exception as e:
+            logger.error(f"Error generating {tension} graph: {e}")
 
     logger.info("PHASE 1: Graph Generation complete.")
 
-else:
-    logger.info("PHASE 1: Graph Generation (ETL) skipped by configuration.")
 
-
-# --- 3. PHASE 2: Topological Analysis ---
-if topological_analysis:
+# --- Phase 2: Topological Analysis ---
+def run_topology_analysis():
     logger.info("PHASE 2: Starting Topological Analysis...")
 
-    # --- Path definitions for pre-built graphs ---
-    FILE_NAME_GRAPH_BT = (
-        "./data/graph/CPFL_Paulista_BT_Electrical_Network_Topology.pickle"
-    )
-    FILE_NAME_GRAPH_MT = (
-        "./data/graph/CPFL_Paulista_MT_Electrical_Network_Topology.pickle"
-    )
-    FILE_NAME_GRAPH_AT = (
-        "./data/graph/CPFL_Paulista_AT_Electrical_Network_Topology.pickle"
-    )
-
-    # --- Analyze Low Voltage (BT) ---
-    try:
-        logger.info("Loading and analyzing BT Network...")
-        G_bt = load_graph(path_load=FILE_NAME_GRAPH_BT)
-        analysis_bt = TopologyAnalysis(graph=G_bt, report_subname="CPFL Paulista BT")
-        analysis_bt.connectivity_scale()
-        analysis_bt.components_distribution_analysis()
-        del G_bt, analysis_bt  # Clear memory
-
-    except FileNotFoundError:
-        logger.error(
-            f"FATAL: BT graph file not found at {FILE_NAME_GRAPH_BT}. "
-            "Run with generate_graphs=True first."
-        )
-    except Exception as e:
-        logger.error(f"An error occurred during BT analysis: {e}")
-
-    # --- Analyze Medium Voltage (MT) ---
-    try:
-        logger.info("Loading and analyzing MT Network...")
-        G_mt = load_graph(path_load=FILE_NAME_GRAPH_MT)
-        analysis_mt = TopologyAnalysis(graph=G_mt, report_subname="CPFL Paulista MT")
-        analysis_mt.connectivity_scale()
-        analysis_mt.components_distribution_analysis()
-        del G_mt, analysis_mt  # Clear memory
-
-    except FileNotFoundError:
-        logger.error(
-            f"FATAL: MT graph file not found at {FILE_NAME_GRAPH_MT}. "
-            "Run with generate_graphs=True first."
-        )
-    except Exception as e:
-        logger.error(f"An error occurred during MT analysis: {e}")
-
-    # --- Analyze High Voltage (AT) ---
-    try:
-        logger.info("Loading and analyzing AT Network...")
-        G_at = load_graph(path_load=FILE_NAME_GRAPH_AT)
-        analysis_at = TopologyAnalysis(graph=G_at, report_subname="CPFL Paulista AT")
-        analysis_at.connectivity_scale()
-        analysis_at.components_distribution_analysis()
-        del G_at, analysis_at  # Clear memory
-
-    except FileNotFoundError:
-        logger.error(
-            f"FATAL: AT graph file not found at {FILE_NAME_GRAPH_AT}. "
-            "Run with generate_graphs=True first."
-        )
-    except Exception as e:
-        logger.error(f"An error occurred during AT analysis: {e}")
+    for tension, path in DATA_PATHS["graphs"].items():
+        try:
+            logger.info(f"Analyzing {tension} Network...")
+            G = load_graph(path_load=path)
+            
+            analysis = TopologyAnalysis(
+                graph=G, 
+                report_subname=f"CPFL Paulista {tension}"
+            )
+            analysis.connectivity_scale()
+            analysis.components_distribution_analysis()
+            
+            del G, analysis
+        except FileNotFoundError:
+            logger.error(f"Graph file for {tension} not found. Run Generation phase first.")
+        except Exception as e:
+            logger.error(f"Error in {tension} topology analysis: {e}")
 
     logger.info("PHASE 2: Topological Analysis complete.")
 
-else:
-    logger.info("PHASE 2: Topological Analysis skipped by configuration.")
+
+# --- Phase 3: Criticality Analysis ---
+def run_criticality_analysis():
+    logger.info("PHASE 3: Starting Criticality Analysis (Parallel)...")
+
+    for tension, path in DATA_PATHS["graphs"].items():
+        try:
+            logger.info(f"Calculating criticality for {tension} Network...")
+            G = load_graph(path_load=path)
+            
+            # Using 500 samples and 24 cores (adjust n_processes based on machine)
+            analysis = CriticalityAnalysis(
+                graph=G, 
+                k_sample=500, 
+                n_processes=16, 
+                report_subname=f"CPFL Paulista {tension}"
+            )
+            analysis.analizar_criticidad_paralela(view=False)
+            
+            del G, analysis
+        except FileNotFoundError:
+            logger.error(f"Graph file for {tension} not found.")
+        except Exception as e:
+            logger.error(f"Error in {tension} criticality analysis: {e}")
+
+    logger.info("PHASE 3: Criticality Analysis complete.")
 
 
-# --- 4. PHASE 3: Failure Analysis ---
-if failure_analysis:
-    logger.info("PHASE 3: Starting Failure Analysis...")
+# --- Phase 4: Failure Analysis (Original Network) ---
+def run_failure_analysis():
+    logger.info("PHASE 4: Starting Failure Analysis (Original)...")
 
-    # --- Path definitions for pre-built graphs ---
-    graphs_config = [
+    for tension, path in DATA_PATHS["graphs"].items():
+        try:
+            logger.info(f"Simulating failures for {tension} Network...")
+            
+            failure_analyzer = FailureAnalysis(pickle_path=path)
+            
+            # 1. Random Failure Simulation
+            logger.info(f"[{tension}] Running random failure simulation...")
+            f_rand, p_rand = failure_analyzer.simulate_failure("random")
+
+            # 2. Targeted Attack Simulation
+            logger.info(f"[{tension}] Running targeted attack simulation...")
+            f_deg, p_deg = failure_analyzer.simulate_failure("degree")
+
+            # 3. Plotting
+            failure_analyzer.plot_failures(
+                f_and_p_random=(f_rand, p_rand),
+                f_and_p_degree=(f_deg, p_deg),
+                tension=tension,
+                name=f"CPFL Paulista {tension}"
+            )
+            
+            del failure_analyzer
+        except FileNotFoundError:
+            logger.error(f"Graph file for {tension} not found.")
+        except Exception as e:
+            logger.error(f"Error in {tension} failure analysis: {e}")
+
+    logger.info("PHASE 4: Failure Analysis complete.")
+
+
+# --- Phase 5: Redundancy Analysis (Investment Proposal) ---
+def run_redundancy_analysis():
+    logger.info("PHASE 5: Starting Redundancy Analysis (Investment)...")
+
+    # Define scenarios to analyze: (Tension, Zoom Coordinates, Investment Radius)
+    # Note: Adding suffix to network_name to ensure unique filenames
+    scenarios = [
+        # BT Scenarios
         {
-            "path": "./data/graph/CPFL_Paulista_BT_Electrical_Network_Topology.pickle",
-            "tension": "BT",
-            "name": "Low Voltage (BT)",
+            "tension": "BT", "coords": (-46.9575, -22.7694), 
+            "dist": 5000, "name": "CPFL Paulista BT Redundancy Map 5000"
         },
         {
-            "path": "./data/graph/CPFL_Paulista_MT_Electrical_Network_Topology.pickle",
-            "tension": "MT",
-            "name": "Medium Voltage (MT)",
+            "tension": "BT", "coords": (-46.9575, -22.7694), 
+            "dist": 15000, "name": "CPFL Paulista BT Redundancy Map 15000"
+        },
+        # MT Scenarios
+        {
+            "tension": "MT", "coords": (-47.96277, -21.119580,), 
+            "dist": 5000, "name": "CPFL Paulista MT Redundancy Map 5000"
         },
         {
-            "path": "./data/graph/CPFL_Paulista_AT_Electrical_Network_Topology.pickle",
-            "tension": "AT",
-            "name": "High Voltage (AT)",
+            "tension": "MT", "coords": (-47.96277, -21.119580), 
+            "dist": 15000, "name": "CPFL Paulista MT Redundancy Map 15000"
         },
     ]
 
-    for config in graphs_config:
+    for scen in scenarios:
         try:
-            logger.info(f"Starting failure analysis for {config['name']} Network...")
-
-            failure_analyzer = FailureAnalysis(pickle_path=config["path"])
-
-            # Run failure simulations
-            logger.info(f"Running random failure simulation for {config['name']}...")
-            f_and_p_random = failure_analyzer.simulate_failure("random")
-
-            logger.info(f"Running targeted attack simulation for {config['name']}...")
-            f_and_p_degree = failure_analyzer.simulate_failure("degree")
-
-            # Generate and save plots
-            failure_analyzer.plot_failures(
-                f_and_p_random=f_and_p_random,
-                f_and_p_degree=f_and_p_degree,
-                tension=config["tension"],
+            tension = scen["tension"]
+            path = DATA_PATHS["graphs"][tension]
+            
+            logger.info(f"Running optimization for {tension} (Radius: {scen['dist']}m)...")
+            G = load_graph(path_load=path)
+            
+            analysis = RedundancyAnalysis(
+                G, 
+                zoom_location_manual=scen["coords"], 
+                max_distance_m=scen["dist"], 
+                zoom_radius_deg=0.001, 
+                top_n=500, 
+                network_name=scen["name"]
             )
-
-            logger.info(f"Failure analysis complete for {config['name']} Network.")
-
+            
+            # 1. Find candidates (Tie-Lines logic)
+            analysis.find_connection_candidates()
+            
+            # 2. Generate and Save the Optimized Graph (Used in Phase 6)
+            # Using view=False to avoid blocking execution with pop-ups
+            analysis.generate_redundancy_graph(budget_limit_meters=scen["dist"], view=False) 
+            
+            del G, analysis
+            
         except FileNotFoundError:
-            logger.error(
-                f"FATAL: Graph file not found at {config['path']}. "
-                "Run with generate_graphs=True first."
-            )
+            logger.error(f"Graph file for {tension} not found.")
         except Exception as e:
-            logger.error(
-                f"An error occurred during {config['name']} failure analysis: {e}"
+            logger.error(f"Error in redundancy analysis ({scen['name']}): {e}")
+
+    logger.info("PHASE 5: Redundancy Analysis complete.")
+
+
+# --- Phase 6: Comparative Analysis (Validation) ---
+def run_comparative_analysis():
+    logger.info("PHASE 6: Starting Comparative Failure Analysis (Validation)...")
+
+    # Mapping of comparisons: (Original Path, Optimized Path, Label)
+    # Note: Optimized paths are derived from the 'network_name' used in Phase 5
+    # Standard format: ./data/graph/{name_replaced_spaces}_OPTIMIZED.pickle
+    
+    comparisons = [
+        {
+            "orig": DATA_PATHS["graphs"]["BT"],
+            "opt": "./data/graph/CPFL_Paulista_BT_Redundancy_Map_5000_5000_OPTIMIZED.pickle",
+            "subname": "5000m",
+            "type": "CPFL Paulista BT Comparison"
+        },
+        {
+            "orig": DATA_PATHS["graphs"]["BT"],
+            "opt": "./data/graph/CPFL_Paulista_BT_Redundancy_Map_15000_15000_OPTIMIZED.pickle",
+            "subname": "15000m",
+            "type": "CPFL Paulista BT Comparison"
+        },
+        {
+            "orig": DATA_PATHS["graphs"]["MT"],
+            "opt": "./data/graph/CPFL_Paulista_MT_Redundancy_Map_5000_5000_OPTIMIZED.pickle",
+            "subname": "5000m",
+            "type": "CPFL Paulista MT Comparison"
+        },
+        {
+            "orig": DATA_PATHS["graphs"]["MT"],
+            "opt": "./data/graph/CPFL_Paulista_MT_Redundancy_Map_15000_15000_OPTIMIZED.pickle",
+            "subname": "15000m",
+            "type": "CPFL Paulista MT Comparison"
+        }
+    ]
+
+    for comp in comparisons:
+        try:
+            logger.info(f"Comparing: {comp['type']} ({comp['subname']})...")
+            
+            analyzer = ComparativeFailureAnalysis(
+                path_original=comp["orig"],
+                path_redundant=comp["opt"],
+                base_unit=0.6,
+                view=False
             )
+            
+            # Run comparison simulation (random vs targeted for both networks)
+            analyzer.run_analysis(
+                tension_type=f"{comp['type']} {comp['subname']}", 
+                num_steps=1000
+            )
+            
+            del analyzer
+            
+        except Exception as e:
+            logger.error(f"Error in comparative analysis ({comp['subname']}): {e}")
 
-    logger.info("PHASE 3: Failure Analysis complete.")
+    logger.info("PHASE 6: Comparative Analysis complete.")
 
-else:
-    logger.info("PHASE 3: Failure Analysis skipped by configuration.")
 
-if criticality_analysis:
-    logger.info("PHASE 4: Starting Criticality Analysis...")
-    # --- 5. Criticality Analysis ---
-    FILE_NAME_GRAPH_BT = (
-        "./data/graph/CPFL_Paulista_BT_Electrical_Network_Topology.pickle"
-    )
+# --- Main Execution Block ---
+if __name__ == "__main__":
+    
+    # Execute enabled phases
+    if PIPELINE_FLAGS["generate_graphs"]:
+        run_graph_generation()
+    else:
+        logger.info("Skipping Phase 1 (Generation).")
 
-    # --- Analyze Low Voltage (BT) ---
-    try:
-        logger.info("Loading and analyzing BT Network...")
-        G_bt = load_graph(path_load=FILE_NAME_GRAPH_BT)
-        a = CriticalityAnalysis(graph=G_bt, k_sample=5, n_processes=24)
-        a.analizar_criticidad_paralela()
+    if PIPELINE_FLAGS["topology_analysis"]:
+        run_topology_analysis()
+    else:
+        logger.info("Skipping Phase 2 (Topology).")
 
-    except FileNotFoundError:
-        logger.error(
-            f"FATAL: BT graph file not found at {FILE_NAME_GRAPH_BT}. "
-            "Run with generate_graphs=True first."
-        )
-    except Exception as e:
-        logger.error(f"An error occurred during BT analysis: {e}")
-else:
-    logger.info("PHASE 4: Criticality Analysis skipped by configuration.")
-logger.info("CPFL Paulista Network Analysis pipeline finished.")
+    if PIPELINE_FLAGS["criticality_analysis"]:
+        run_criticality_analysis()
+    else:
+        logger.info("Skipping Phase 3 (Criticality).")
+        
+    if PIPELINE_FLAGS["failure_analysis"]:
+        run_failure_analysis()
+    else:
+        logger.info("Skipping Phase 4 (Failure Analysis - Original).")
+
+    if PIPELINE_FLAGS["redundancy_analysis"]:
+        run_redundancy_analysis()
+    else:
+        logger.info("Skipping Phase 5 (Redundancy Investment).")
+
+    if PIPELINE_FLAGS["comparative_analysis"]:
+        run_comparative_analysis()
+    else:
+        logger.info("Skipping Phase 6 (Comparative Validation).")
+    
+    logger.info("Pipeline execution finished.")

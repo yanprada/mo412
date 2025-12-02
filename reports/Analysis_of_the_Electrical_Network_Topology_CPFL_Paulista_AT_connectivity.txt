@@ -1,0 +1,56 @@
+
+        =====================================================
+        CONNECTIVITY AND SCALE REPORT
+        =====================================================
+        Analysis Date/Time: 2025-12-02 03:07:58
+        Network: CPFL Paulista AT
+        -----------------------------------------------------
+
+        [1. SCALE METRICS & GLOBAL TOPOLOGY]
+        - Total Nodes (|V|): ---------------- 30,560
+        - Total Links (|E|): ---------------- 25,996
+        - Total Connected Components: ------- 4564
+        - Average Density (E/V Ratio): ------ 0.851
+
+        [2. DEGREE CENTRALITY ANALYSIS]
+        - Maximum Degree (Network Hub): ----- 4
+        - Average Degree (|k|): ------------- 1.701
+        - Std. Deviation of Degree: --------- 0.466
+        
+        [3. REDUNDANCY AND MAIN COMPONENT]
+        - Nodes in LCC (Main Component): ---- 233 nodes
+        - LCC Coverage Percentage: ---------- 0.762%
+        - Gamma Index (LCC Redundancy): ----- 0.008584
+
+        [4. VULNERABILITY (SINGLE POINTS OF FAILURE)]
+        - Total Articulation Points: -------- 21318
+        - Percentage of Nodes as APs: ------- 69.758%
+
+        -----------------------------------------------------
+        EXPERT INTERPRETATION:
+        - LCC Coverage Percentage: If this is < 95%, it implies a significant
+          portion of assets are not connected to the main grid. This could
+          indicate data quality issues or confirm the existence of
+          many independent, isolated systems.
+        
+        - Average Density: Indicates network redundancy. A value < 1.5
+          suggests a topology closer to a tree or radial network (low
+          redundancy). MT networks are often slightly > 1.5, while
+          BT networks are almost exactly 1.0.
+
+        - Std. Deviation of Degree: A high value implies a heterogeneous
+          network (i.e., connectivity is controlled by a few very
+          large hubs), which is typical for utility networks.
+
+        - Gamma Index: Measures how "close" the network is to being a
+          complete graph. In sparse utility networks (radial or
+          branched), this value will be extremely low (near zero).
+          
+        - Articulation Points: These are the network's critical weak points.
+          The lower the percentage of articulation points, the more
+          robust (redundant) the network is against node failures. A
+          perfect (but non-existent) radial network would have
+          almost all non-leaf nodes as articulation points.
+
+        =====================================================
+        

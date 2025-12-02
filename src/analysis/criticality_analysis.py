@@ -105,6 +105,9 @@ class CriticalityAnalysis:
                 )
                 return
 
+            # plot_data = df_critical.sort_values(
+            #     by="Intermediation_CB", ascending=True
+            # ).reset_index(drop=True)
             plot_data = df_critical.set_index("COD_ID").to_dict("index")
             critical_nodes = list(plot_data.keys())
             node_colors = [
@@ -177,7 +180,7 @@ class CriticalityAnalysis:
                 path_report = os.path.join(
                     "./reports/", self.name_path + "_criticality.png"
                 )
-                plt.savefig(path_report, dpi=300, bbox_inches="tight")
+                plt.savefig(path_report, dpi=500, bbox_inches="tight")
                 logger.info(f"Criticality Heat map saved in: {path_report}")
 
                 if view:
@@ -238,7 +241,7 @@ class CriticalityAnalysis:
             (df_critical["Intermediation_CB"] / max_cb) * 100 if max_cb > 0 else 0
         )
         df_critical = df_critical.sort_values(
-            by="Intermediation_CB", ascending=False
+            by="Intermediation_CB", ascending=True
         ).reset_index(drop=True)
 
         self.__save_results_csv(df_critical)
@@ -256,7 +259,7 @@ class CriticalityAnalysis:
         Total Articulation Points Identified: {num_pa_found:,}
 
         -- TOP 10 MOST CRITICAL Nodes (Highest CB) ---
-        {df_critical.head(10).to_string(index=False)}
+        {df_critical.tail(10).to_string(index=False)}
         """
 
         logger.info(report_content)

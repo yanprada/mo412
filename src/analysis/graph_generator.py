@@ -7,7 +7,7 @@ import networkx as nx
 import numpy as np
 import pandas as pd
 
-from src.utils.save_load_graph import save_graph
+from utils.save_load_graph import save_graph
 
 logger = logging.getLogger(__name__)
 
@@ -240,7 +240,7 @@ class GraphGenerator:
         # 6. Titles and Annotations
         plt.title(title, fontsize=18, color="black", loc="left", y=1.05)
         plt.text(
-            0.00,
+            0.025,
             1.02,
             f"Nodos: {graph.number_of_nodes()} | Links: {graph.number_of_edges()}",
             transform=ax.transAxes,
@@ -497,10 +497,7 @@ class GraphGenerator:
         self.__graph_creating_model()
         
         # 4. Visualize (if requested and the graph is not massive)
-        if view:
-            self.__view_graph_topology(graph=self.G, title=self.name, view=view)
-        else:
-            logger.info("Display omitted (view=False or graph too large).")
+        self.__view_graph_topology(graph=self.G, title=self.name, view=view)
             
         logger.info(f"Process completed for the graph: {self.name}")
         return self.G

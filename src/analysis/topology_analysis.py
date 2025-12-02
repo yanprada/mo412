@@ -293,7 +293,7 @@ class TopologyAnalysis:
                 alpha=0.65,
                 zorder=1,
                 which="both", # Grid for major and minor ticks
-                color="#D7EAE2",
+                color="lightgrey",
             )
 
             # Determine a reasonable number of bins
